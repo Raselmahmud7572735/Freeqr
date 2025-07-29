@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR Code Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Inter', sans-serif; margin: 0; background: #f8f9fd; color: #222; }
+    header, footer { text-align: center; padding: 20px; background: #0078d4; color: white; }
+    .container { padding: 20px; max-width: 900px; margin: auto; }
+    .step-title { font-size: 1.2rem; margin: 20px 0 10px; }
+    .qr-type { display: flex; flex-wrap: wrap; gap: 10px; }
+    .qr-type button {
+      flex: 1 1 45%; padding: 15px; background: #fff; border: 1px solid #ccc;
+      border-radius: 8px; cursor: pointer; font-size: 1rem;
+    }
+    .form-section { display: none; margin-top: 20px; }
+    .form-section.active { display: block; }
+    input, textarea, select {
+      width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px;
+    }
+    .generate, #downloadBtn {
+      background: #0078d4; color: white; padding: 10px 20px; border: none;
+      border-radius: 5px; cursor: pointer;
+    }
+    #qrcode canvas { margin-top: 20px; }
+    .colors { display: flex; gap: 10px; margin-top: 10px; }
+    .colors input { width: 100%; padding: 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>QR Code Generator</h1>
+  </header>
+  <div class="container">
+    <div class="step-title">1. Select a type of QR code</div>
+    <div class="qr-type">
+      <button onclick="showForm('website')">Website</button>
+      <button onclick="showForm('text')">Text</button>
+      <button onclick="showForm('pdf')">PDF</button>
+      <button onclick="showForm('links')">List of Links</button>
+      <button onclick="showForm('vcard')">vCard</button>
+      <button onclick="showForm('business')">Business</button>
+      <button onclick="showForm('video')">Video</button>
+      <button onclick="showForm('images')">Images</button>
+      <button onclick="showForm('whatsapp')">WhatsApp</button>
+      <button onclick="showForm('sms')">SMS</button>
+      <button onclick="showForm('wifi')">WiFi</button>
+    </div>
+
+    <div id="form-container">
+      <div id="website" class="form-section active"><input type="text" id="websiteInput" placeholder="https://example.com"/></div>
+      <div id="text" class="form-section"><textarea id="textInput" placeholder="Enter your text"></textarea></div>
+      <div id="pdf" class="form-section"><input type="text" id="pdfInput" placeholder="Paste PDF URL"/></div>
+      <div id="links" class="form-section"><textarea id="linksInput" placeholder="Enter multiple links, one per line"></textarea></div>
+      <div id="vcard" class="form-section">
+        <input type="text" id="vName" placeholder="Full Name"/>
+        <input type="text" id="vPhone" placeholder="Phone Number"/>
+        <input type="text" id="vEmail" placeholder="Email"/>
+      </div>
+      <div id="business" class="form-section">
+        <input type="text" id="bName" placeholder="Business Name"/>
+        <input type="text" id="bInfo" placeholder="Business Info"/>
+      </div>
+      <div id="video" class="form-section"><input type="text" id="videoInput" placeholder="Paste video URL"/></div>
+      <div id="images" class="form-section"><input type="text" id="imagesInput" placeholder="Paste image URLs (comma separated)"/></div>
+      <div id="whatsapp" class="form-section"><input type="text" id="waInput" placeholder="WhatsApp number with country code"/></div>
+      <div id="sms" class="form-section"><input type="text" id="smsInput" placeholder="Phone number to send SMS"/></div>
+      <div id="wifi" class="form-section">
+        <input type="text" id="ssid" placeholder="WiFi SSID"/>
+        <input type="text" id="password" placeholder="WiFi Password"/>
+        <select id="encryption">
+          <option value="WPA">WPA</option>
+          <option value="WEP">WEP</option>
+          <option value="nopass">No Password</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="colors">
+      <input type="color" id="fgColor" value="#000000" title="Foreground Color">
+      <input type="color" id="bgColor" value="#ffffff" title="Background Color">
+    </div>
+    <input type="file" id="logoUpload" accept="image/*">
+
+    <button class="generate" onclick="generateQR()">Generate</button>
+    <button id="downloadBtn" onclick="downloadQR()">Download</button>
+
+    <div id="qrcode"></div>
+  </div>
+
+  <footer>Website Designed By Rasel Mahmud</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script>
+    let currentType = "website";
+
+    function showForm(type) {
+      currentType = type;
+      document.querySelectorAll('.form-section').forEach(el => el.classList.remove('active'));
+      const activeForm = document.getElementById(type);
+      if (activeForm) activeForm.classList.add('active');
+    }
+
+    function getQRContent() {
+      switch (currentType) {
+        case "website": return document.getElementById("websiteInput").value;
+        case "text": return document.getElementById("textInput").value;
+        case "pdf": return document.getElementById("pdfInput").value;
+        case "links": return document.getElementById("linksInput").value.split("\n").join(", ");
+        case "vcard":
+          return `BEGIN:VCARD\nVERSION:3.0\nN:${document.getElementById("vName").value}\nTEL:${document.getElementById("vPhone").value}\nEMAIL:${document.getElementById("vEmail").value}\nEND:VCARD`;
+        case "business":
+          return `Business: ${document.getElementById("bName").value}, Info: ${document.getElementById("bInfo").value}`;
+        case "video": return document.getElementById("videoInput").value;
+        case "images": return document.getElementById("imagesInput").value;
+        case "whatsapp": return `https://wa.me/${document.getElementById("waInput").value}`;
+        case "sms": return `sms:${document.getElementById("smsInput").value}`;
+        case "wifi":
+          const s = document.getElementById("ssid").value;
+          const p = document.getElementById("password").value;
+          const e = document.getElementById("encryption").value;
+          return `WIFI:S:${s};T:${e};P:${p};;`;
+        default: return "";
+      }
+    }
+
+    function generateQR() {
+      const text = getQRContent();
+      const fg = document.getElementById("fgColor").value;
+      const bg = document.getElementById("bgColor").value;
+      const qrcode = document.getElementById("qrcode");
+      qrcode.innerHTML = "";
+
+      const canvas = document.createElement("canvas");
+
+      QRCode.toCanvas(canvas, text, { width: 256, color: { dark: fg, light: bg } }, err => {
+        if (err) return console.error(err);
+
+        const logoFile = document.getElementById("logoUpload").files[0];
+        if (logoFile) {
+          const ctx = canvas.getContext("2d");
+          const logo = new Image();
+          logo.onload = () => {
+            const size = 50;
+            const x = (canvas.width - size) / 2;
+            const y = (canvas.height - size) / 2;
+            ctx.drawImage(logo, x, y, size, size);
+            qrcode.appendChild(canvas);
+          };
+          logo.src = URL.createObjectURL(logoFile);
+        } else {
+          qrcode.appendChild(canvas);
+        }
+      });
+    }
+
+    function downloadQR() {
+      const canvas = document.querySelector("#qrcode canvas");
+      if (canvas) {
+        const link = document.createElement("a");
+        link.download = "qr_code.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+    }
+
+    // Optional: show website form on initial load
+    window.onload = () => showForm("website");
+  </script>
+</body>
+</html>
